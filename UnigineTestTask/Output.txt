@@ -1,0 +1,12 @@
+total urls 4, domains 4, paths 2
+
+top domains
+1 en.wikipedia1.org
+1 en.wikipedia2.org
+1 en.wikipedia3.org
+1 en.wikipedia4.org
+
+top paths
+2 /
+2 /wiki/Free_software/
+
