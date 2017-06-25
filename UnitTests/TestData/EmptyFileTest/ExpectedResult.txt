@@ -1,4 +1,4 @@
-total urls 0, domains 0, paths 0
+﻿total urls 0, domains 0, paths 0
 
 top domains
 

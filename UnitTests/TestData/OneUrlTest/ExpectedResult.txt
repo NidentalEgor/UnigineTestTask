@@ -1,4 +1,4 @@
-total urls 1, domains 1, paths 1
+﻿total urls 1, domains 1, paths 1
 
 top domains
 1 en.wikipedia.org

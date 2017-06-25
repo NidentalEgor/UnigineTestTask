@@ -1,4 +1,4 @@
-total urls 8, domains 5, paths 4
+﻿total urls 8, domains 5, paths 4
 
 top domains
 3 en.wikipedia1.org
