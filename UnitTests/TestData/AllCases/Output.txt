@@ -1,0 +1,15 @@
+total urls 8, domains 5, paths 4
+
+top domains
+3 en.wikipedia1.org
+2 en.wikipedia.org
+1 123
+1 123-
+1 en.wikipedia.org-
+
+top paths
+4 /
+2 /w/index.php
+1 /W/index.php
+1 /wiki/Main_Page
+

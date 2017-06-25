@@ -1,0 +1,8 @@
+//Строка без урлов
+//Разные домены разные пути
+https://en.wikipedia1.org/w/index.php
+https://en.wikipediA1.org/w/index.php?title=Kirschkuchen&action=edit&section=8
+https://en.wikipedia1.org/W/index.php 123
+Одинаковые домены разные пути
+13208 GET http://en.wikipedia.org/wiki/Main_Page	 http://en.wikipedia.org/ http://en.wikipedia.org- text/html .4322) en-US -
+13208 GET http123 http://123- text/html https://123/ .4322) en-US -

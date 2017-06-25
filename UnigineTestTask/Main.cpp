@@ -7,36 +7,64 @@
 #include <queue>
 #include <locale>
 #include <iterator>
+#include <memory>
 
+/*!
+* Переводит строку в нижний регистр.
+*
+\param[in] data Строка с возможным наличием символов в верхнем регистре.
+*
+\return строка data в нижнем регистре.
+*/
+std::string ToLowerCase(
+		const std::string& data)
+{
+	std::string lower_case_data;
+	std::transform(
+			data.begin(),
+			data.end(),
+			std::back_inserter(lower_case_data),
+			::tolower);
+	return lower_case_data;
+}
+
+/*!
+* Класс для проверки символов на предмет их содержания во множестве допустимых значений.
+*/
 class SymbolChecker
 {
 public:
+
 	enum class CorrectSymbolsSetType
 	{
-		Domen,
+		Domain,
 		Path
 	};
 
+	/*!
+	* Конструктор.
+	*
+	\param[in] correct_symbols_set_type Задает набор допустимых значений.
+	*/
 	SymbolChecker(
 			const CorrectSymbolsSetType correct_symbols_set_type)
 		: correct_symbols_set_type_(correct_symbols_set_type)
 	{
 	};
 
-	bool CheckSymbol(
-			const char symbol) const
+	virtual ~SymbolChecker()
 	{
-		if (correct_symbols_set_type_ == CorrectSymbolsSetType::Domen)
-		{
-			return CheckDomen(symbol);
-		}
-		else
-		{
-			return CheckPath(symbol);
-		}
 	}
 
-private:
+	/*!
+	* Проверяет символ на принадлежность к множеству допустимых значений.
+	*
+	\return true если символ принадлежит множеству допустимых значений, false - иначе.
+	*/
+	virtual bool CheckSymbol(
+			const char symbol) const = 0;
+
+protected:
 	bool CheckLettersAndNumbers(
 			const char symbol) const
 	{
@@ -45,16 +73,21 @@ private:
 				(symbol >= '0' && symbol <= '9');
 	}
 
-	bool CheckDomen(
-			const char symbol) const
+protected:
+	CorrectSymbolsSetType correct_symbols_set_type_;
+};
+
+class PathSymbolChecker : public SymbolChecker
+{
+public:
+	explicit PathSymbolChecker(
+			const CorrectSymbolsSetType correct_symbols_set_type)
+		: SymbolChecker(correct_symbols_set_type)
 	{
-		return CheckLettersAndNumbers(symbol) ||
-				symbol == '.' ||
-				symbol == '-';
 	}
 
-	bool CheckPath(
-		const char symbol) const
+	bool CheckSymbol(
+		const char symbol) const override
 	{
 		return CheckLettersAndNumbers(symbol) ||
 				symbol == '.' ||
@@ -63,143 +96,179 @@ private:
 				symbol == '+' ||
 				symbol == '_';
 	}
-
-private:
-	CorrectSymbolsSetType correct_symbols_set_type_;
 };
 
-class UrlStatisticsCollector
+class DomainSymbolChecker : public SymbolChecker
 {
-private:
-	using StringToCountMap = std::unordered_map<std::string, size_t>;
 public:
-	UrlStatisticsCollector()
-		: domen_symbol_checker_(SymbolChecker::CorrectSymbolsSetType::Domen)
-		, path_symbol_checker_(SymbolChecker::CorrectSymbolsSetType::Path)
-		, urls_count_(0)
-		, is_statistics_collected_(false)
+	explicit DomainSymbolChecker(
+			const CorrectSymbolsSetType correct_symbols_set_type)
+		: SymbolChecker(correct_symbols_set_type)
 	{
 	}
 
-	void CollectStatistics(
-			const std::string& input_file_path)
+	bool CheckSymbol(
+		const char symbol) const override
 	{
-		if (input_file_path.empty())
-		{
-			//Error!!!
-		}
+		return CheckLettersAndNumbers(symbol) ||
+				symbol == '.' ||
+				symbol == '-';
+	}
+};
 
-		std::ifstream input_file(input_file_path);
-
-		if (!input_file.is_open())
-		{
-			//Error!!!
-		}
-
-		std::string input_file_line;
-		while (std::getline(
-				input_file,
-				input_file_line))
-		{
-			ProcessLine(input_file_line);
-		}
+/*!
+* Класс для поиска подстрок в строке. Реализация алгоритма Кнута — Морриса — Пратта.
+*/
+class SubstringSearcher
+{
+public:
+	/*!
+	* Конструктор.
+	*
+	\param[in] pattern Строка, которая будет искаться.
+	*/
+	SubstringSearcher(
+			const std::string& pattern)
+		: pattern_(pattern)
+		, prefix_function_result_(pattern.size())
+	{
+		Preprocessing();
 	}
 
-	void EnsureStatisticsCollected()
+	/*!
+	* Ищет заранее определенную подстроку в строке line.
+	*
+	\param[in] line Строка, в которой будет производиться поиск.
+	\param[in] begin_position Позиция в строке line, начиная с которой
+	* будет производиться поиск.
+	*
+	\return Позиция в строке, следующая за последним символом искомой
+	* подстроки, std::strin::npos иначе.
+	*/
+	std::string::size_type Search(
+			const std::string& line,
+			const std::string::size_type begin_position)
 	{
-		//if ()
-	}
-
-	void WriteTopNElements(
-			const StringToCountMap& container,
-			const size_t n,
-			std::ofstream& output_file) const
-	{
-		std::deque<std::pair<std::string, size_t>> top_n_damains;
-		StringToCountMap::const_iterator current =
-				container.begin();
-		for (size_t i = 0
-			; i < std::min(n, container.size())
-			; ++i, ++current)
+		for (std::string::size_type k = 0, i = begin_position
+			; i < line.size()
+			; ++i)
 		{
-			top_n_damains.push_back(*current);
-		}
-
-		std::sort(
-				top_n_damains.begin(),
-				top_n_damains.end(),
-				[](const std::pair<std::string, size_t>& left,
-					const std::pair<std::string, size_t>& right)
-				{
-					return left.second > right.second;
-				});
-
-		for (; current != container.end(); ++current)
-		{
-			if (current->second > top_n_damains.back().second)
+			while ((k > 0) && (pattern_[k] != line[i]))
 			{
-				top_n_damains.pop_front();
-				top_n_damains.push_back(*current);
+				k = prefix_function_result_[k - 1];
+			}
+
+			if (pattern_[k] == line[i])
+			{
+				++k;
+			}
+
+			if (k == pattern_.size())
+			{
+				return (i - pattern_.size() + 1);
 			}
 		}
 
-		std::sort(
-				top_n_damains.begin(),
-				top_n_damains.end(),
-				[](const std::pair<std::string, size_t>& left,
-					const std::pair<std::string, size_t>& right)
-				{
-					if (left.second != right.second)
-					{
-						return false;
-					}
+		return std::string::npos;
+	}
+private:
+	void Preprocessing()
+	{
+		prefix_function_result_.resize(
+				pattern_.size());
+		prefix_function_result_.front() = 0;
 
-					const std::string& left_key = left.first;
-					const std::string& right_key = right.first;
-					std::string left_key_lower_case, right_key_lower_case;
-					
-					std::transform(
-							left_key.begin(),
-							left_key.end(),
-							std::back_inserter(left_key_lower_case),
-							::tolower);
+		for (std::string::size_type k = 0, i = 1
+			; i < pattern_.size()
+			; ++i)
+		{
+			while ((k > 0) && (pattern_[i] != pattern_[k]))
+			{
+				k = prefix_function_result_[k - 1];
+			}
 
-					std::transform(
-							right_key.begin(),
-							right_key.end(),
-							std::back_inserter(right_key_lower_case),
-							::tolower);
+			if (pattern_[i] == pattern_[k])
+			{
+				k++;
+			}
 
-
-					return left_key_lower_case < right_key_lower_case;
-				});
-
-		std::for_each(
-				top_n_damains.begin(),
-				top_n_damains.end(),
-				[&output_file](const std::pair<std::string, size_t>& domain)
-				{
-					output_file << domain.second << " " << domain.first << std::endl;
-				});
-		output_file << std::endl;
+			prefix_function_result_[i] = k;
+		}
 	}
 
+private:
+	std::string pattern_;
+	std::vector<int> prefix_function_result_;
+};
+
+using StringSizeTPair = std::pair<std::string, size_t>;
+using StringToCountMap = std::unordered_map<std::string, size_t>;
+
+class UrlStatisticsCollector
+{
+public:
+	/*!
+	* Конструктор.
+	*
+	\param[in] input_file_path Путь к файлу с входными данными.
+	*/
+	UrlStatisticsCollector(
+			const std::string& input_file_path)
+		: input_file_path_(input_file_path)
+		, is_file_processed_(false)
+		, domain_symbol_checker_(
+				std::make_shared<DomainSymbolChecker>(
+					SymbolChecker::CorrectSymbolsSetType::Domain))
+		, path_symbol_checker_(
+				std::make_shared<PathSymbolChecker>(
+					SymbolChecker::CorrectSymbolsSetType::Path))
+		, substring_searcher_("http")
+		, urls_count_(0)
+		, is_statistics_collected_(false)
+		, size_of_top_rate_(5)
+	{
+	}
+
+	/*!
+	* Устанавливает путь до файла с входными данными.
+	*
+	\param[in] input_file_path Путь к файлу с входными данными.
+	*/
+	void SetInputFilePath(
+			const std::string& input_file_path)
+	{
+		if (input_file_path_ != input_file_path)
+		{
+			input_file_path_ = input_file_path;
+			is_file_processed_ = false;
+		}
+	}
+
+	/*!
+	* При необходимости парсит файл с входными данными. Записывает результат
+	в файл, находящийся по указанному пути.
+	*
+	\param[in] output_file_path Путь к файлу для записи результатов.
+	\param[in] size_of_top Количество статистических записей, которое будет выведено.
+	*/
 	void WriteStatistics(
 			const std::string& output_file_path,
 			const size_t size_of_top)
 	{
+		EnsureStatisticsCollected();
+
 		if (output_file_path.empty())
 		{
-			// Error !!!
-			return;
+			throw std::invalid_argument(
+					"UrlStatisticsCollector::WriteStatistics : Output file path is empty!");
 		}
 
 		std::ofstream output_file(output_file_path);
 
 		if (!output_file.is_open())
 		{
-			// Error !!!
-			return;
+			throw std::invalid_argument(
+					"UrlStatisticsCollector::WriteStatistics : Can not open output file!");
 		}
 
 		output_file <<
@@ -211,25 +280,132 @@ public:
 		WriteTopNElements(
 				domains_,
 				size_of_top,
+				false,
 				output_file);
 
 		output_file << "top paths" << std::endl;
 		WriteTopNElements(
 				paths_,
 				size_of_top,
+				true,
 				output_file);
+	}
+
+private:
+	void CollectStatistics(
+			const std::string& input_file_path)
+	{
+		if (input_file_path.empty())
+		{
+			throw std::invalid_argument(
+					"UrlStatisticsCollector::WriteStatistics : Input file path is empty!");
+		}
+
+		std::ifstream input_file(input_file_path);
+
+		if (!input_file.is_open())
+		{
+			throw std::invalid_argument(
+					"UrlStatisticsCollector::WriteStatistics : Can not open input file!");
+		}
+
+		std::string input_file_line;
+		while (std::getline(
+				input_file,
+				input_file_line))
+		{
+			ProcessLine(input_file_line);
+		}
+
+		is_file_processed_ = true;
+	}
+
+	void EnsureStatisticsCollected()
+	{
+		if (!is_file_processed_)
+		{
+			CollectStatistics(input_file_path_);
+		}
+	}
+
+	void WriteTopNElements(
+			const StringToCountMap& container,
+			const size_t size_of_top,
+			const bool is_case_sensitive,
+			std::ofstream& output_file) const
+	{
+		std::deque<StringSizeTPair> top_n_records;
+		StringToCountMap::const_iterator current =
+				container.begin();
+		for (size_t i = 0
+			; i < std::min(size_of_top, container.size())
+			; ++i, ++current)
+		{
+			top_n_records.push_back(*current);
+		}
+
+		// Сначала сортируем по первичному признаку.
+		std::sort(
+				top_n_records.begin(),
+				top_n_records.end(),
+				[](const StringSizeTPair& left,
+					const StringSizeTPair& right)
+				{
+					return left.second > right.second;
+				});
+
+		// Выбираем size_of_top элементов, которые встречались чаще других.
+		for (; current != container.end(); ++current)
+		{
+			if (current->second > top_n_records.back().second)
+			{
+				top_n_records.pop_front();
+				top_n_records.push_back(*current);
+			}
+		}
+
+		// Сортируем по вторичному признаку(алфавитный порядок без учета регистра).
+		std::sort(
+				top_n_records.begin(),
+				top_n_records.end(),
+				[is_case_sensitive](const StringSizeTPair& left,
+					const StringSizeTPair& right)
+				{
+					if (left.second != right.second)
+					{
+						return false;
+					}
+
+					if (is_case_sensitive)
+					{
+						return ToLowerCase(left.first) < ToLowerCase(right.first);
+					}
+
+					// Домены уже приведены к нижнему регистру.
+					return left.first < right.first;
+				});
+
+		std::for_each(
+				top_n_records.begin(),
+				top_n_records.end(),
+				[&output_file](const StringSizeTPair& domain)
+				{
+					output_file << domain.second << " " << domain.first << std::endl;
+				});
+
+		output_file << std::endl;
 	}
 
 	std::string::size_type IsPrefixCorrect(
 			const std::string& line,
-			std::string::size_type position)
+			std::string::size_type position) const
 	{
-		//if (AreSubstringsCoincide(line, position + 4, "://", 0, 3)) // часть "http" уже проверена
-		if (line.compare(position + 4, 3, "://") == 0) // часть "http" уже проверена
+		// Часть "http" уже проверена, проверяем оба возможных окончания префикса.
+		if (line.compare(position + 4, 3, "://") == 0)
 		{
 			return position + 7;
 		}
-		//if (AreSubstringsCoincide(line, position + 4, "s://", 0, 4)) // часть "http" уже проверена
+
 		if (line.compare(position + 4, 4, "s://") == 0)
 		{
 			return position + 8;
@@ -238,50 +414,22 @@ public:
 		return std::string::npos;
 	}
 
-	std::string::size_type GetPath(
+	std::string::size_type GetPositionAfterCertainUrlPart(
 			const std::string& line,
-			const std::string::size_type position) const
+			const std::string::size_type position,
+			const std::shared_ptr<SymbolChecker>& symbol_checker) const
 	{
-		size_t i = 0;
-		for (i = position; i < line.size(); ++i)
-		{
-			if (!path_symbol_checker_.CheckSymbol(line[i]))
-			{
-				return i;
-			}
-		}
-
-		return i;
-	}
-
-	std::string::size_type GetDomen(
-			const std::string& line,
-			const std::string::size_type position) const
-	{
-		size_t i = 0;
-		for (i = position
+		for (size_t i = position
 			; i < line.size()
 			; ++i)
 		{
-			if (!domen_symbol_checker_.CheckSymbol(line[i]))
+			if (!symbol_checker->CheckSymbol(line[i]))
 			{
-				// Возвращаем первый символ, которого не может быть в домене.
 				return i;
 			}
 		}
 
 		return line.size();
-	}
-
-	bool CheckEmptyPath(
-			const std::string& line,
-			const std::string::size_type position)
-	{
-		return line[position] == '\0';
-
-		return line[position] == ' ' ||
-				line[position] == '\t' || 
-				line[position] == '\n';
 	}
 
 	std::string::size_type ParseUrl(
@@ -296,49 +444,39 @@ public:
 			return position + 4;
 		}
 
-		std::string::size_type after_path_position = 0;
-		const std::string::size_type after_domen_position =
-				GetDomen(line, after_prefix_position);
-		if (after_domen_position == /*std::string::npos*/after_prefix_position)
+		const std::string::size_type after_domain_position =
+				GetPositionAfterCertainUrlPart(
+					line,
+					after_prefix_position,
+					domain_symbol_checker_);
+
+		if (after_domain_position == after_prefix_position)
 		{
-			return position + 4; // подумать
+			return position + 4;
 		}
 
-		// Добавляем в хеш\мапу
-		std::string domen(
+		const std::string domain(
 				line.begin() + after_prefix_position,
-				line.begin() + after_domen_position);
-		std::cout << "domen = " << domen << std::endl;
-		++domains_[domen];
+				line.begin() + after_domain_position);
+		// Домены не чувствительны к регистру, поэтому приводим к нижнему регистру сразу.
+		++domains_[ToLowerCase(domain)];
+		// Обязательные части(префикс и домен) существуют, поэтому теперь можем увеличить счетчик. 
 		++urls_count_;
 
-		if (CheckEmptyPath(line, after_domen_position))
-		{
-			std::cout << "path = '/'" << std::endl;
-			++paths_["/"];
-			// добавляем '/'  так как путь пустой
-			return after_domen_position; // подумать
-		}
-		
-		// Подумать
-		after_path_position =
-				GetPath(line, after_domen_position);
-		//if (after_path_position == std::string::npos)
-		//{
-		//	return position + 4; // подумать
-		//}
+		const std::string::size_type after_path_position =
+				GetPositionAfterCertainUrlPart(
+					line,
+					after_domain_position,
+					path_symbol_checker_);
 
-		// Добавляем в хеш\мапу
 		std::string path(
-				line.begin() + after_domen_position,
+				line.begin() + after_domain_position,
 				line.begin() + after_path_position);
 
-		if (path.back() != '/')
+		if (path.empty())
 		{
 			path += '/';
 		}
-
-		std::cout << "path = " << path << std::endl;
 		++paths_[path];
 		
 		return after_path_position;
@@ -348,13 +486,16 @@ public:
 			const std::string& input_file_line)
 	{
 		std::string::size_type current_position = 0;
-		std::string::size_type match_position = 0;
 
 		while (current_position != std::string::npos &&
 				current_position < input_file_line.size())
 		{
+			// Ищем первое вхождение префикса URL-а.
 			current_position =
-					KMP(input_file_line, current_position, "http"); // Ищем первое вхождение префикса URL-а
+					substring_searcher_.Search(
+						input_file_line,
+						current_position);
+
 			if (current_position == std::string::npos)
 			{
 				break;
@@ -365,57 +506,12 @@ public:
 		}
 	}
 
-	std::string::size_type KMP(
-			const std::string& line,
-			const std::string::size_type begin_position,
-			const std::string& pattern) // нужно вынести в отдельный класс и pf вычислять всего раз
-	{
-		std::vector<int> pf(pattern.length());
-
-		pf[0] = 0;
-		for (std::string::size_type k = 0, i = 1
-			; i < pattern.length()
-			; ++i)
-		{
-			while ((k > 0) && (pattern[i] != pattern[k]))
-			{
-				k = pf[k - 1];
-			}
-
-			if (pattern[i] == pattern[k])
-			{
-				k++;
-			}
-
-			pf[i] = k;
-		}
-
-		for (std::string::size_type k = 0, i = begin_position
-			; i < line.length()
-			; ++i)
-		{
-			while ((k > 0) && (pattern[k] != line[i]))
-			{
-				k = pf[k - 1];
-			}
-
-			if (pattern[k] == line[i])
-			{
-				k++;
-			}
-
-			if (k == pattern.length())
-			{
-				return (i - pattern.length() + 1); //либо продолжаем поиск следующих вхождений
-			}
-		}
-
-		return std::string::npos;
-	}
-
 private:
-	SymbolChecker domen_symbol_checker_;
-	SymbolChecker path_symbol_checker_;
+	std::string input_file_path_;
+	bool is_file_processed_;
+	std::shared_ptr<SymbolChecker> domain_symbol_checker_;
+	std::shared_ptr<SymbolChecker> path_symbol_checker_;
+	SubstringSearcher substring_searcher_;
 	size_t urls_count_;
 	bool is_statistics_collected_;
 	size_t size_of_top_rate_;
@@ -459,8 +555,7 @@ int main(int argc, char* argv[])
 				argc,
 				argv);
 
-	UrlStatisticsCollector url_statistics_collector;
-	url_statistics_collector.CollectStatistics(
+	UrlStatisticsCollector url_statistics_collector(
 			command_line_options.input_file_path);
 	url_statistics_collector.WriteStatistics(
 			command_line_options.output_file_path,
