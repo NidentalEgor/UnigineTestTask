@@ -1,13 +1,11 @@
 ﻿#include <string>
-#include <iostream>
 #include <fstream>
 #include <algorithm>
 #include <vector>
 #include <unordered_map>
 #include <queue>
-#include <locale>
-#include <iterator>
 #include <memory>
+#include <iostream>
 
 /*!
 * Переводит строку в нижний регистр.
@@ -20,10 +18,11 @@ std::string ToLowerCase(
 		const std::string& data)
 {
 	std::string lower_case_data;
+	lower_case_data.resize(data.size());
 	std::transform(
 			data.begin(),
 			data.end(),
-			std::back_inserter(lower_case_data),
+			lower_case_data.begin(),
 			::tolower);
 	return lower_case_data;
 }
@@ -540,6 +539,7 @@ CommandLineOptions ParseCommandLine(
 		{
 			command_line_options.size_of_top =
 					std::stoi(argv[++current_parameter_index]);
+			++current_parameter_index;
 		}
 		command_line_options.input_file_path = argv[current_parameter_index++];
 		command_line_options.output_file_path = argv[current_parameter_index++];
@@ -550,16 +550,28 @@ CommandLineOptions ParseCommandLine(
 
 int main(int argc, char* argv[])
 {
-	const CommandLineOptions command_line_options =
-			ParseCommandLine(
-				argc,
-				argv);
+	try
+	{
+		const CommandLineOptions command_line_options =
+				ParseCommandLine(
+					argc,
+					argv);
 
-	UrlStatisticsCollector url_statistics_collector(
-			command_line_options.input_file_path);
-	url_statistics_collector.WriteStatistics(
-			command_line_options.output_file_path,
-			command_line_options.size_of_top);
+		UrlStatisticsCollector url_statistics_collector(
+				command_line_options.input_file_path);
+		url_statistics_collector.WriteStatistics(
+				command_line_options.output_file_path,
+				command_line_options.size_of_top);
+	}
+	catch (std::invalid_argument& ex)
+	{
+		std::cout << "Invalid argument: " << ex.what() << std::endl;
+	}
+	catch (std::exception& ex)
+	{
+		std::cout << "Unknown exception: " << ex.what() << std::endl;
+	}
+	
 
 	return 0;
 }
