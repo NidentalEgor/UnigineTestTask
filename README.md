@@ -1,5 +1,5 @@
 ### **Тестовое задание в [UNIGINE С++ School](https://cpp-school.unigine.com/)**
-
+Срок выполнения 1 день.
 #### **Сборка**
 Собирается с помощью g++ 5.4.0 и Visual Studio 2015
 * git clone https://github.com/NidentalEgor/UnigineTestTask.git
