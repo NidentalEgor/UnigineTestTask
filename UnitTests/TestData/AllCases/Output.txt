@@ -1,15 +1,12 @@
-total urls 8, domains 5, paths 4
+total urls 5, domains 2, paths 5
 
 top domains
-3 en.wikipedia1.org
-2 en.wikipedia.org
-1 123
-1 123-
-1 en.wikipedia.org-
+4 en.wikipedia.org
+1 www.google.com
 
 top paths
-4 /
-2 /w/index.php
-1 /W/index.php
+1 /search
+1 /w/index.php
+1 /wiki/Free_software
+1 /wiki/Kirschkuchen
 1 /wiki/Main_Page
-
